@@ -15,23 +15,27 @@ func main() {
 	//threshold for compression
 	thr := os.Args[4]
 	fmt.Println("ARgs: ", op, input, output, thr)
-	f,err := os.Open(input)
+	f, err := os.Open(input)
 	errCheck(err)
 	r := bufio.NewReader(f)
-	btmp,err := bmp.Decode(r)
+	btmp, err := bmp.Decode(r)
 	errCheck(err)
-	fmt.Println("RESUKLT", btmp.Bounds())
-	for i := 0; i < btmp.Bounds().Max.X; i++ {
-		for j:=0; j < btmp.Bounds().Max.Y; j++ {
+	pixels := make([][]float32, btmp.Bounds().Size().X)
+	fmt.Println("RESUKLT", btmp.Bounds().Size())
+	for i := 0; i < btmp.Bounds().Size().X; i++ {
+		pixels[i] = make([]float32, btmp.Bounds().Size().Y)
+		for j := 0; j < btmp.Bounds().Size().Y; j++ {
+			pix, _, _, _ := btmp.At(i, j).RGBA()
+			//we're dealing with n bit depth gray pixel, the library always does 0-65635
+			pix = pix >> 8
+			pixels[i][j] = float32(pix)
 		}
 	}
-	fte := "temp2.bmp"
-	ft, err := os.OpenFile(fte, os.O_RDWR|os.O_CREATE, 0755)
+	ft, err := os.OpenFile(output, os.O_RDWR|os.O_CREATE, 0755)
 	defer ft.Close()
 	errCheck(err)
 	w := bufio.NewWriter(ft)
 	defer w.Flush()
-	err = bmp.Encode(w,btmp)
+	err = bmp.Encode(w, btmp)
 	errCheck(err)
 }
-

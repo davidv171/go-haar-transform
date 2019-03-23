@@ -41,18 +41,34 @@ func haar(input []float32, thr float32, depth int) []float32 {
 
 //Get all the pixels and width and height of the picture(x), turn it into 8x8 blocks and perform haar transform on the rows and columns
 func blocks(pixels [][]float32, x, y int) [][]float32 {
-	block := make([][]float32, 8)
+	block := make([][]float32, 8, 8)
 	for i := 0; i < 8; i++ {
-		block[i] = make([]float32, 8)
+		block[i] = make([]float32, 8, 8)
 	}
-	for i := 0; i < y; i += 8 {
-		//Transform 8x8 block by transforming all rows, then transforming all columns
-		for j := 0; j < x; j += 8 {
-			//get 8x8 block
-			block = pixels[j : j+8]
+
+	//Transform 8x8 block by transforming all rows, then transforming all columns
+	for i := 0; i < x; i++ {
+		//get 8xY sized block
+		//Get [0,0], [8,8],[8,16] etc. every 8th tile in the 2D array
+		for j := 0; j < y; j++ {
+			block[i%8][j%8] = pixels[i][j]
+			fmt.Print(" ")
 		}
+		fmt.Println("")
+
 	}
-	fmt.Println("")
+	fmt.Println(pixels[x-1][y-1])
+	fmt.Println(pixels[x-1][y-2])
+	fmt.Println(pixels[x-1][y-3])
+	fmt.Println(pixels[x-1][y-8])
+	fmt.Println(pixels[x-2][y-1])
+	fmt.Println("Block", len(block), " ", len(block[0]))
+	for i := 0; i < len(block); i++ {
+		for j := 0; j < len(block[i]); j++ {
+			fmt.Print(block[i][j], " ")
+		}
+		fmt.Println("")
+	}
 	haar(block[0], -151, 0)
 
 	return block

@@ -31,6 +31,8 @@ func main() {
 			pixels[i][j] = float32(pix)
 		}
 	}
+	//We assume a symmetric BMP
+	blocks(pixels, btmp.Bounds().Size().X, btmp.Bounds().Size().Y)
 	ft, err := os.OpenFile(output, os.O_RDWR|os.O_CREATE, 0755)
 	defer ft.Close()
 	errCheck(err)

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"golang.org/x/image/bmp"
 	"os"
+	"strconv"
 )
 
 func main() {
@@ -13,7 +14,8 @@ func main() {
 	input := os.Args[2]
 	output := os.Args[3]
 	//threshold for compression
-	thr := os.Args[4]
+	thr, err := strconv.ParseFloat(os.Args[4], 8)
+	errCheck(err)
 	fmt.Println("ARgs: ", op, input, output, thr)
 	f, err := os.Open(input)
 	errCheck(err)
@@ -21,7 +23,7 @@ func main() {
 	btmp, err := bmp.Decode(r)
 	errCheck(err)
 	pixels := make([][]float32, btmp.Bounds().Size().X)
-	fmt.Println("RESUKLT", btmp.Bounds().Size())
+	fmt.Println("Bitmap dimensions : ", btmp.Bounds().Size())
 	for i := 0; i < btmp.Bounds().Size().X; i++ {
 		pixels[i] = make([]float32, btmp.Bounds().Size().Y)
 		for j := 0; j < btmp.Bounds().Size().Y; j++ {
@@ -32,7 +34,8 @@ func main() {
 		}
 	}
 	//We assume a symmetric BMP
-	blocks(pixels, btmp.Bounds().Size().X, btmp.Bounds().Size().Y)
+	haar := blocks(pixels, btmp.Bounds().Size().X, btmp.Bounds().Size().Y, float32(thr))
+	fmt.Println("HAAR : ", haar)
 	ft, err := os.OpenFile(output, os.O_RDWR|os.O_CREATE, 0755)
 	defer ft.Close()
 	errCheck(err)

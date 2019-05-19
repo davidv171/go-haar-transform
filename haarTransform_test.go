@@ -157,11 +157,88 @@ func Test_getRow(t *testing.T) {
 				{1, 2, 3, 4, 5, 6, 7, 56}, {1, 2, 3, 4, 5, 6, 7, 64}},
 			1}, []float32{1, 2, 3, 4, 5, 6, 7, 16},
 		},
+		//GET last row of 2D 8x8 block
+		{"Basic test on second row", args{
+			[][]float32{{1, 2, 3, 4, 5, 6, 7, 8}, {1, 2, 3, 4, 5, 6, 7, 16},
+				{1, 2, 3, 4, 5, 6, 7, 24}, {1, 2, 3, 4, 5, 6, 7, 32},
+				{1, 2, 3, 4, 5, 6, 7, 40}, {1, 2, 3, 4, 5, 6, 7, 48},
+				{1, 2, 3, 4, 5, 6, 7, 56}, {1, 2, 3, 4, 5, 6, 7, 64}},
+			7}, []float32{1, 2, 3, 4, 5, 6, 7, 64},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			if got := getRow(tt.args.block, tt.args.index); !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("getRow() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func Test_getColumn(t *testing.T) {
+	type args struct {
+		block [][]float32
+		index int
+	}
+	tests := []struct {
+		name string
+		args args
+		want []float32
+	}{
+		//GET first column of 2D 8x8 block
+		{"Basic test", args{
+			[][]float32{{1, 2, 3, 4, 5, 6, 7, 8}, {1, 2, 3, 4, 5, 6, 7, 16},
+				{1, 2, 3, 4, 5, 6, 7, 24}, {1, 2, 3, 4, 5, 6, 7, 32},
+				{1, 2, 3, 4, 5, 6, 7, 40}, {1, 2, 3, 4, 5, 6, 7, 48},
+				{1, 2, 3, 4, 5, 6, 7, 56}, {1, 2, 3, 4, 5, 6, 7, 64},
+			}, 0}, []float32{1, 1, 1, 1, 1, 1, 1, 1},
+		// TODO: Add test cases.
+		}}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := getColumn(tt.args.block, tt.args.index); !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("getColumn() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func Test_blocksT(t *testing.T) {
+	type args struct {
+		block [][]float32
+		thr   float32
+	}
+	tests := []struct {
+		name string
+		args args
+		want [][]float32
+	}{
+		{"Basic test case", args{
+			[][]float32{
+				{88, 88, 89, 90, 92, 94, 96, 97},
+				{90, 90, 91, 92, 93, 95, 97, 97},
+				{92, 92, 93, 94, 95, 96, 97, 97},
+				{93, 93, 94, 95, 96, 96, 96, 96},
+				{92, 93, 95, 96, 96, 96, 96, 95},
+				{92, 94, 96, 98, 99, 99, 98, 97},
+				{94, 96, 99, 101, 103, 103, 102, 101},
+				{95, 97, 101, 104, 106, 106, 105, 105},
+			}, -42,
+		}, [][]float32{
+			{96, -2.0312, -1.5312, -0.2188, -0.4375, -0.75, -0.3125, -0.125},
+			{-2.4375, -0.0312, 0.7812, -0.7812, 0.4375, 0.25, -0.3125, -0.25},
+			{-1.125, -0.625, 0, -0.625, 0, 0, -0.375, -0.125},
+			{-2.6875, 0.75, 0.5625, -0.0625, 0, 0, -0.375, -0.125},
+			{-0.6875, -0.3125, 0, -0.125, 0, 0, 0, -0.25},
+			{-0.1875, -0.3125, 0, -0.375, 0, 0, -0.25, 0},
+			{-0.875, 0.375, 0.25, -0.25, 0.25, 0.25, 0, 0},
+			{-1.25, 0.375, 0.375, 0.125, 0, 0.25, 0, 0.25},
+		}},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := blocksT(tt.args.block, tt.args.thr); !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("blocksT() = %v,\n want %v", got, tt.want)
 			}
 		})
 	}

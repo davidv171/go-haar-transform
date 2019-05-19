@@ -1,6 +1,9 @@
 package main
 
-import "fmt"
+import (
+	"fmt"
+	"math"
+)
 
 //TODO: make this a goroutine
 
@@ -12,6 +15,7 @@ First run: depth = 0-> don't append anything,
 Second run: depth = 4 -> append last 4 elements without calculaitng anything
 Third run depth = 6, append last 6 elements without calculating anything
 number of runs is decided by log2(8) -> we're dealing with 8 sized rows/columns
+//TODO: JOIN THE THREE OPERATIONS INTO A SINGLE MATRIX: Constant matrix???
 */
 func haar(input []float32, thr float32, depth int) []float32 {
 	//Sums and subtraction array, later we append subtract to the sums
@@ -23,7 +27,9 @@ func haar(input []float32, thr float32, depth int) []float32 {
 		//Calculate averages and differences
 		if !(i%2 == 0) {
 			var sum = (input[i-1] + input[i]) / 2
+			sum = float32(math.Ceil(float64(sum)*10000) / 10000)
 			var sub = (input[i-1] - input[i]) / 2
+			sub = float32(math.Ceil(float64(sub)*10000) / 10000)
 			if sum < thr {
 				sum = 0
 			}
@@ -37,7 +43,6 @@ func haar(input []float32, thr float32, depth int) []float32 {
 
 	subtr = append(subtr, input[len(input)-depth:]...)
 	rowhaar := append(sums, subtr...)
-	fmt.Println("Recursing...", depth, rowhaar)
 	//Unless we're at the last depth, recurse
 	//Ugly as shit recursion, please FIXME
 	switch depth {
@@ -46,12 +51,10 @@ func haar(input []float32, thr float32, depth int) []float32 {
 	case 4:
 		return haar(rowhaar, thr, 6)
 	case 6:
-		fmt.Println("Ending recursion... ", rowhaar)
 		return rowhaar
 	default:
 		return nil
 	}
-	return nil
 }
 
 //Get all the pixels and width and height of the picture(x = height , y = width)
@@ -66,13 +69,16 @@ func blocks(pixels [][]float32, x, y int, thr float32) [][]float32 {
 		transformed[i] = make([]float32, 8, 8)
 	}
 	//Transform 8x8 block by transforming all rows, then transforming all columns
+	fmt.Println("Ready to transform")
 	for i := 0; i < x; i++ {
 		//get 8xY sized block
 		//Get [0,0], [8,8],[8,16] etc. every 8th tile in the 2D array
 		for j := 0; j < y; j++ {
 			block[i%8][j%8] = pixels[i][j]
-			//TODO: Haar transform on block row
-
+			blocksT(block, thr)
+			//TODO: Transform the blocks
+			//Transform H into orthogonal matrix-> Inverse is faster
+			//Normalize each colmn of the starting matrix to length 1
 		}
 
 	}
@@ -80,9 +86,35 @@ func blocks(pixels [][]float32, x, y int, thr float32) [][]float32 {
 	return block
 }
 
-//Receive 8x8 block, return 1D array of size 8, based on column value
+//Receive 8x8 block, return 1D array of size 8, based on index value
 //index 0 -> get row 0 in 8x8 block
 func getRow(block [][]float32, index int) []float32 {
-	row := block[index][0:8]
+	row := block[index][:]
 	return row
+}
+
+//Receive 8x8 block, return 1D array of size 8, representing the indexth column
+func getColumn(block [][]float32, index int) []float32 {
+	column := make([]float32, 8)
+	//alternative := block[:][index]
+	for i := range column {
+		column[i] = block[i][index]
+	}
+	return column
+}
+func blocksT(block [][]float32, thr float32) [][]float32 {
+	transformedBlock := make([][]float32, 8, 8)
+	for i := 0; i < 8; i++ {
+		transformedBlock[i] = haar(getRow(block, i), thr, 0)
+	}
+	//Transform blocks after, used the already transformed matrix...
+	for i := 0; i < 8; i++ {
+		//Get column as a row-> insert it as a column
+		currColumn := getColumn(transformedBlock, i)
+		for j := 0; j < 8; j++ {
+			transformedBlock[j][i] = haar(currColumn, thr, 0)[j]
+		}
+	}
+	//Transpose it because I have low iq
+	return transformedBlock
 }

@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"math"
 )
 
@@ -27,9 +26,9 @@ func haar(input []float32, thr float32, depth int) []float32 {
 		//Calculate averages and differences
 		if !(i%2 == 0) {
 			var sum = (input[i-1] + input[i]) / 2
-			sum = float32(math.Ceil(float64(sum)*10000) / 10000)
+			sum = float32(math.Ceil(float64(sum)*10000) / 10000 * math.Sqrt(2))
 			var sub = (input[i-1] - input[i]) / 2
-			sub = float32(math.Ceil(float64(sub)*10000) / 10000)
+			sub = float32(math.Ceil(float64(sub)*10000) / 10000 * math.Sqrt(2))
 			if sum < thr {
 				sum = 0
 			}
@@ -60,6 +59,7 @@ func haar(input []float32, thr float32, depth int) []float32 {
 //Get all the pixels and width and height of the picture(x = height , y = width)
 //Pass down threshhold(thr) from the user input
 //turn it into 8x8 blocks and perform haar transform on the rows and columns
+//TODO: Insert the transformed blocks where it's supposed to be
 func blocks(pixels [][]float32, x, y int, thr float32) [][]float32 {
 	block := make([][]float32, 8, 8)
 	//The transformed 8x8 block
@@ -69,7 +69,6 @@ func blocks(pixels [][]float32, x, y int, thr float32) [][]float32 {
 		transformed[i] = make([]float32, 8, 8)
 	}
 	//Transform 8x8 block by transforming all rows, then transforming all columns
-	fmt.Println("Ready to transform")
 	for i := 0; i < x; i++ {
 		//get 8xY sized block
 		//Get [0,0], [8,8],[8,16] etc. every 8th tile in the 2D array
@@ -82,7 +81,6 @@ func blocks(pixels [][]float32, x, y int, thr float32) [][]float32 {
 		}
 
 	}
-	fmt.Println("Done with blocks, ", transformed[0])
 	return block
 }
 
@@ -117,4 +115,102 @@ func blocksT(block [][]float32, thr float32) [][]float32 {
 	}
 	//Transpose it because I have low iq
 	return transformedBlock
+}
+
+//Global zig zag, takes in an array of 8x8 blocks, then zig zags all of them simultaneously, offsetting the indexes by each matrix index
+//arrayOfBlocks[blockIndex][i][j] -> result[blockIndex + iterator]
+func zigZag(block [][][]float32) []float32 {
+	//Resulting a NxN length 1D matrix from an 8x8 block
+	result := make([]float32, 128)
+	l := len(block)
+	for z := 0; z < l; z++ {
+		i := 1
+		j := 0
+		iterator := 2 + l
+		helper := 0
+		result[z] = block[z][0][0]
+		result[z+l] = block[z][0][1]
+		//Last one is predetermined
+		result[(63*l)+z] = block[z][7][7]
+		firsthalf := true
+		for iterator < 64*l {
+			if i == 8 && j == 0 {
+				i = 7
+				j++
+				firsthalf = !firsthalf
+			}
+			if firsthalf {
+				if j%2 == 0 && i == 0 {
+					result[iterator+z] = block[z][i][j]
+					iterator += l
+					j++
+				} else if j%2 != 0 && i == 0 {
+					//Neparni elementi na prvi vrstici, se zmanjšujejo dokler ne dosežejo svojega inverza
+					temp := j
+					for helper = 0; helper < temp; helper++ {
+						result[iterator+z] = block[z][i][j]
+						iterator += l
+						i++
+						j--
+					}
+					result[iterator+z] = block[z][i][j]
+					iterator += l
+					i++
+				} else if i%2 == 0 && j == 0 {
+					//Parni elementi na prvem stolpcu, se povečujejo dokler ne dosežejo svojega inverza
+					//Prevent infinite looping
+					temp := i
+					for helper = 0; helper < temp; helper++ {
+						result[iterator+z] = block[z][i][j]
+						iterator += l
+						i--
+						j++
+					}
+					result[iterator+z] = block[z][i][j]
+					iterator += l
+					j++
+				} else if i != 0 && j == 0 {
+					result[iterator+z] = block[z][i][j]
+					iterator += l
+					i++
+				}
+			} else {
+				if j%2 == 0 && 7 == 0 {
+					result[iterator+z] = block[z][i][j]
+					iterator += l
+					i++
+				} else if j%2 != 0 && i == 7 {
+					//Go up the matrix until you reach the inverse(from 5,0 -> 0,5)
+					temp := 7 - j
+					for helper = 0; helper < temp; helper++ {
+						result[iterator+z] = block[z][i][j]
+						iterator += l
+						i--
+						j++
+					}
+					result[iterator+z] = block[z][i][j]
+					iterator += l
+					i++
+				} else if i%2 == 0 && j == 7 {
+					//Go down in the matrix until you reach the inverse(from 0,1->1,0 for example)
+					//Prevent infinite looping
+					temp := 7 - i
+					for helper = 0; helper < temp; helper++ {
+						result[iterator+z] = block[z][i][j]
+						iterator += l
+						j--
+						i++
+					}
+					result[iterator+z] = block[z][i][j]
+					iterator += l
+					j++
+				} else if j != 0 && i == 7 {
+					result[iterator+z] = block[z][i][j]
+					iterator += l
+					j++
+				}
+			}
+		}
+	}
+	return result
 }

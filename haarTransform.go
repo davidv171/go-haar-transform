@@ -14,7 +14,6 @@ First run: depth = 0-> don't append anything,
 Second run: depth = 4 -> append last 4 elements without calculaitng anything
 Third run depth = 6, append last 6 elements without calculating anything
 number of runs is decided by log2(8) -> we're dealing with 8 sized rows/columns
-//TODO: JOIN THE THREE OPERATIONS INTO A SINGLE MATRIX: Constant matrix???
 */
 func haar(input []float32, thr float32, depth int) []float32 {
 	//Sums and subtraction array, later we append subtract to the sums
@@ -121,12 +120,12 @@ func blocksT(block [][]float32, thr float32) [][]float32 {
 //arrayOfBlocks[blockIndex][i][j] -> result[blockIndex + iterator]
 func zigZag(block [][][]float32) []float32 {
 	//Resulting a NxN length 1D matrix from an 8x8 block
-	result := make([]float32, 128)
 	l := len(block)
+	result := make([]float32, l*64)
 	for z := 0; z < l; z++ {
 		i := 1
 		j := 0
-		iterator := 2 + l
+		iterator := 2 * l
 		helper := 0
 		result[z] = block[z][0][0]
 		result[z+l] = block[z][0][1]
@@ -138,6 +137,9 @@ func zigZag(block [][][]float32) []float32 {
 				i = 7
 				j++
 				firsthalf = !firsthalf
+			} else if i == 8 && j == 7 {
+				i = 7
+
 			}
 			if firsthalf {
 				if j%2 == 0 && i == 0 {

@@ -62,18 +62,13 @@ func haar(input []float32, thr float32, depth int) []float32 {
 func blocks(pixels [][]float32, x, y int, thr float32) [][]float32 {
 	block := make([][]float32, 8, 8)
 	//The transformed 8x8 block
-	transformed := make([][]float32, x, y)
-	for i := 0; i < 8; i++ {
-		block[i] = make([]float32, 8, 8)
-		transformed[i] = make([]float32, 8, 8)
-	}
+	//transformed := make([][]float32, x, y)
 	//Transform 8x8 block by transforming all rows, then transforming all columns
 	for i := 0; i < x; i++ {
 		//get 8xY sized block
 		//Get [0,0], [8,8],[8,16] etc. every 8th tile in the 2D array
 		for j := 0; j < y; j++ {
 			block[i%8][j%8] = pixels[i][j]
-			blocksT(block, thr)
 			//TODO: Transform the blocks
 			//Transform H into orthogonal matrix-> Inverse is faster
 			//Normalize each colmn of the starting matrix to length 1
@@ -99,17 +94,20 @@ func getColumn(block [][]float32, index int) []float32 {
 	}
 	return column
 }
-func blocksT(block [][]float32, thr float32) [][]float32 {
-	transformedBlock := make([][]float32, 8, 8)
-	for i := 0; i < 8; i++ {
-		transformedBlock[i] = haar(getRow(block, i), thr, 0)
-	}
-	//Transform blocks after, used the already transformed matrix...
-	for i := 0; i < 8; i++ {
-		//Get column as a row-> insert it as a column
-		currColumn := getColumn(transformedBlock, i)
-		for j := 0; j < 8; j++ {
-			transformedBlock[j][i] = haar(currColumn, thr, 0)[j]
+func blocksT(blocks [][][]float32, thr float32) [][][]float32 {
+	transformedBlock := make([][][]float32, 8, 8)
+	for z := 0; z < len(blocks); z++ {
+		block := blocks[z]
+		for i := 0; i < 8; i++ {
+			transformedBlock[z][i] = haar(getRow(block, i), thr, 0)
+		}
+		//Transform blocks after, used the already transformed matrix...
+		for i := 0; i < 8; i++ {
+			//Get column as a row-> insert it as a column
+			currColumn := getColumn(transformedBlock[z], i)
+			for j := 0; j < 8; j++ {
+				transformedBlock[z][j][i] = haar(currColumn, thr, 0)[j]
+			}
 		}
 	}
 	//Transpose it because I have low iq
@@ -126,30 +124,22 @@ func zigZag(block [][][]float32) []float32 {
 		i := 1
 		j := 0
 		iterator := 2 * l
-		helper := 0
 		result[z] = block[z][0][0]
 		result[z+l] = block[z][0][1]
 		//Last one is predetermined
 		result[(63*l)+z] = block[z][7][7]
 		firsthalf := true
-		for iterator < 64*l {
+		for iterator+z < 64*l {
 			if i == 8 && j == 0 {
 				i = 7
 				j++
 				firsthalf = !firsthalf
 			} else if i == 8 && j == 7 {
 				i = 7
-
 			}
 			if firsthalf {
-				if j%2 == 0 && i == 0 {
-					result[iterator+z] = block[z][i][j]
-					iterator += l
-					j++
-				} else if j%2 != 0 && i == 0 {
-					//Neparni elementi na prvi vrstici, se zmanjšujejo dokler ne dosežejo svojega inverza
-					temp := j
-					for helper = 0; helper < temp; helper++ {
+				if j%2 != 0 || i%2 != 0 {
+					for j != 0 {
 						result[iterator+z] = block[z][i][j]
 						iterator += l
 						i++
@@ -158,55 +148,38 @@ func zigZag(block [][][]float32) []float32 {
 					result[iterator+z] = block[z][i][j]
 					iterator += l
 					i++
-				} else if i%2 == 0 && j == 0 {
-					//Parni elementi na prvem stolpcu, se povečujejo dokler ne dosežejo svojega inverza
-					//Prevent infinite looping
-					temp := i
-					for helper = 0; helper < temp; helper++ {
+				} else if i%2 == 0 {
+					for i != 0 {
 						result[iterator+z] = block[z][i][j]
 						iterator += l
 						i--
 						j++
+
 					}
 					result[iterator+z] = block[z][i][j]
 					iterator += l
 					j++
-				} else if i != 0 && j == 0 {
-					result[iterator+z] = block[z][i][j]
-					iterator += l
-					i++
 				}
 			} else {
-				if j%2 == 0 && 7 == 0 {
-					result[iterator+z] = block[z][i][j]
-					iterator += l
-					i++
-				} else if j%2 != 0 && i == 7 {
+				if j%2 != 0 && i == 7 {
 					//Go up the matrix until you reach the inverse(from 5,0 -> 0,5)
-					temp := 7 - j
-					for helper = 0; helper < temp; helper++ {
+					for j != 7 {
 						result[iterator+z] = block[z][i][j]
 						iterator += l
 						i--
 						j++
+
 					}
 					result[iterator+z] = block[z][i][j]
 					iterator += l
 					i++
-				} else if i%2 == 0 && j == 7 {
-					//Go down in the matrix until you reach the inverse(from 0,1->1,0 for example)
-					//Prevent infinite looping
-					temp := 7 - i
-					for helper = 0; helper < temp; helper++ {
+				} else if i%2 == 0 {
+					for i != 7 {
 						result[iterator+z] = block[z][i][j]
 						iterator += l
 						j--
 						i++
 					}
-					result[iterator+z] = block[z][i][j]
-					iterator += l
-					j++
-				} else if j != 0 && i == 7 {
 					result[iterator+z] = block[z][i][j]
 					iterator += l
 					j++
@@ -214,5 +187,6 @@ func zigZag(block [][][]float32) []float32 {
 			}
 		}
 	}
+
 	return result
 }

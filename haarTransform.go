@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"math"
 )
 
@@ -25,9 +26,10 @@ func haar(input []float32, thr float32, depth int) []float32 {
 		//Calculate averages and differences
 		if !(i%2 == 0) {
 			var sum = (input[i-1] + input[i]) / 2
-			sum = float32(math.Ceil(float64(sum)*10000) / 10000 * math.Sqrt(2))
+			//Round to the 4th decimal
+			sum *= float32(math.Sqrt(2))
 			var sub = (input[i-1] - input[i]) / 2
-			sub = float32(math.Ceil(float64(sub)*10000) / 10000 * math.Sqrt(2))
+			sub *= float32(math.Sqrt(2))
 			if sum < thr {
 				sum = 0
 			}
@@ -56,26 +58,67 @@ func haar(input []float32, thr float32, depth int) []float32 {
 }
 
 //Get all the pixels and width and height of the picture(x = height , y = width)
+//We can expect heigh and width to be identical in our future test cases
 //Pass down threshhold(thr) from the user input
 //turn it into 8x8 blocks and perform haar transform on the rows and columns
 //TODO: Insert the transformed blocks where it's supposed to be
-func blocks(pixels [][]float32, x, y int, thr float32) [][]float32 {
-	block := make([][]float32, 8, 8)
-	//The transformed 8x8 block
-	//transformed := make([][]float32, x, y)
-	//Transform 8x8 block by transforming all rows, then transforming all columns
-	for i := 0; i < x; i++ {
+func blocks(pixels [][]float32, x, y int, thr float32) []float32 {
+	//Count how many 8x8 blocks there can be in an x times y matrix
+	count := (x * y) / 64
+	blocks := make([][][]float32, count)
+	for i := range blocks {
+		blocks[i] = make([][]float32, 8)
+		for j := range blocks[i] {
+			blocks[i][j] = make([]float32, 8)
+		}
+	}
+	z := 0
+	//Extra iteration counter, so we can keep resetting m
+	m := 0
+	//TODO: Stop when reaching the end
+	for d := 0; d < len(blocks)-1; d++ {
+		//A single 8x8 block
+		for i := z * 8; i/8 < z+1; i++ {
+			//f and g are in-block trackers
+			f := 0
+			for j := m * 8; j/8 < m+1; j++ {
+				g := 0
+				fmt.Print("ind: ", i, ",", j, "->")
+				currPixel := pixels[i][j]
+				fmt.Print(currPixel, " | ")
+				blocks[d][f][g] = currPixel
+				g++
+			}
+			f++
+			fmt.Println("")
+		}
+		fmt.Println("___________________________________________________________________________________________________________________________________________________________________", " \n ", d)
+		blocks[d] = blocksT(blocks[d], 0)
+		fmt.Println(blocks[d])
+		m++
+		//Reached right corner
+		//Restart algorithm, one row down
+		if x/8 == m {
+			z++
+			m = 0
+
+		}
+		//The transformed 8x8 block
+		//transformed := make([][]float32, x, y)
+		//Transform 8x8 block by transforming all rows, then transforming all columns
 		//get 8xY sized block
 		//Get [0,0], [8,8],[8,16] etc. every 8th tile in the 2D array
-		for j := 0; j < y; j++ {
-			block[i%8][j%8] = pixels[i][j]
-			//TODO: Transform the blocks
-			//Transform H into orthogonal matrix-> Inverse is faster
-			//Normalize each colmn of the starting matrix to length 1
-		}
 
+		//build a matrix of 8x8 blocks
+
+		//TODO: Transform the blocks
+		//Transform H into orthogonal matrix-> Inverse is faster
+		//Normalize each colmn of the starting matrix to length 1
 	}
-	return block
+	fmt.Println("Done")
+	field := zigZag(blocks)
+	fmt.Println(field)
+	return field
 }
 
 //Receive 8x8 block, return 1D array of size 8, based on index value
@@ -94,20 +137,20 @@ func getColumn(block [][]float32, index int) []float32 {
 	}
 	return column
 }
-func blocksT(blocks [][][]float32, thr float32) [][][]float32 {
-	transformedBlock := make([][][]float32, 8, 8)
-	for z := 0; z < len(blocks); z++ {
-		block := blocks[z]
-		for i := 0; i < 8; i++ {
-			transformedBlock[z][i] = haar(getRow(block, i), thr, 0)
-		}
-		//Transform blocks after, used the already transformed matrix...
-		for i := 0; i < 8; i++ {
-			//Get column as a row-> insert it as a column
-			currColumn := getColumn(transformedBlock[z], i)
-			for j := 0; j < 8; j++ {
-				transformedBlock[z][j][i] = haar(currColumn, thr, 0)[j]
-			}
+
+//Transform the received block
+//TODO: Can use goroutine for this
+func blocksT(block [][]float32, thr float32) [][]float32 {
+	transformedBlock := make([][]float32, 8, 8)
+	for i := 0; i < 8; i++ {
+		transformedBlock[i] = haar(getRow(block, i), thr, 0)
+	}
+	//Transform blocks after, used the already transformed matrix...
+	for i := 0; i < 8; i++ {
+		//Get column as a row-> insert it as a column
+		currColumn := getColumn(transformedBlock, i)
+		for j := 0; j < 8; j++ {
+			transformedBlock[j][i] = haar(currColumn, thr, 0)[j]
 		}
 	}
 	//Transpose it because I have low iq

@@ -77,7 +77,7 @@ func blocks(pixels [][]float32, x, y int, thr float32) []float32 {
 	//Extra iteration counter, so we can keep resetting m
 	m := 0
 	//TODO: Stop when reaching the end
-	for d := 0; d < len(blocks)-1; d++ {
+	for d := 0; d < len(blocks); d++ {
 		//A single 8x8 block
 		for i := z * 8; i/8 < z+1; i++ {
 			//f and g are in-block trackers

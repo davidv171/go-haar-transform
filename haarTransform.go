@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"math"
 )
 
@@ -24,20 +23,22 @@ func haar(input []float32, thr float32, depth int) []float32 {
 	//So we're expecting 8 x of 8 sized rows to be inputted N times
 	for i := 1; i < len(input)-depth; i++ {
 		//Calculate averages and differences
+		sqrt := float32(math.Sqrt(2))
 		if !(i%2 == 0) {
 			var sum = (input[i-1] + input[i]) / 2
 			//Round to the 4th decimal
-			sum *= float32(math.Sqrt(2))
+			sum *= sqrt
 			var sub = (input[i-1] - input[i]) / 2
-			sub *= float32(math.Sqrt(2))
+			sub *= sqrt
 			if sum < thr {
 				sum = 0
 			}
 			if sub < thr {
 				sub = 0
 			}
-			sums = append(sums, sum)
-			subtr = append(subtr, sub)
+			//Round to 4 decimals
+			sums = append(sums, float32(math.Round(float64(sum*10000))/10000))
+			subtr = append(subtr, float32(math.Round(float64(sub*10000)/10000)))
 		}
 	}
 
@@ -83,18 +84,13 @@ func blocks(pixels [][]float32, x, y int, thr float32) []float32 {
 			f := 0
 			for j := m * 8; j/8 < m+1; j++ {
 				g := 0
-				fmt.Print("ind: ", i, ",", j, "->")
 				currPixel := pixels[i][j]
-				fmt.Print(currPixel, " | ")
 				blocks[d][f][g] = currPixel
 				g++
 			}
 			f++
-			fmt.Println("")
 		}
-		fmt.Println("___________________________________________________________________________________________________________________________________________________________________", " \n ", d)
-		blocks[d] = blocksT(blocks[d], 0)
-		fmt.Println(blocks[d])
+		blocks[d] = blocksT(blocks[d], thr)
 		m++
 		//Reached right corner
 		//Restart algorithm, one row down
@@ -110,14 +106,10 @@ func blocks(pixels [][]float32, x, y int, thr float32) []float32 {
 		//Get [0,0], [8,8],[8,16] etc. every 8th tile in the 2D array
 
 		//build a matrix of 8x8 blocks
-
-		//TODO: Transform the blocks
 		//Transform H into orthogonal matrix-> Inverse is faster
 		//Normalize each colmn of the starting matrix to length 1
 	}
-	fmt.Println("Done")
 	field := zigZag(blocks)
-	fmt.Println(field)
 	return field
 }
 
@@ -203,6 +195,7 @@ func zigZag(block [][][]float32) []float32 {
 					iterator += l
 					j++
 				}
+				//Second half of the matrix
 			} else {
 				if j%2 != 0 && i == 7 {
 					//Go up the matrix until you reach the inverse(from 5,0 -> 0,5)

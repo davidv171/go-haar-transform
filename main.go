@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"fmt"
 	"golang.org/x/image/bmp"
-	"haarTransformation/arithmetic"
 	"os"
 	"strconv"
 )
@@ -16,15 +15,15 @@ func main() {
 	output := os.Args[3]
 	//threshold for compression
 	thr, err := strconv.ParseFloat(os.Args[4], 8)
-	ErrCheck(err)
+	errCheck(err)
 	f, err := os.Open(input)
-	ErrCheck(err)
+	errCheck(err)
 	r := bufio.NewReader(f)
 	fi, err := f.Stat()
-	ErrCheck(err)
+	errCheck(err)
 	fmt.Println("The file is %d bytes long before performing HAAR ", fi.Size())
 	btmp, err := bmp.Decode(r)
-	ErrCheck(err)
+	errCheck(err)
 	pixels := make([][]float32, btmp.Bounds().Size().X)
 	fmt.Println("Bitmap dimensions : ", btmp.Bounds().Size())
 	for i := 0; i < btmp.Bounds().Size().X; i++ {
@@ -41,10 +40,10 @@ func main() {
 	//Prepend
 	//data = append([]string{"Prepend Item"}, data...)
 	by := float32ToBytes(haar)
-	bound := arithmetic.Int32ToBytes(int32(btmp.Bounds().Size().X))
-	by = append(bound,by...)
+	bound := Int32ToBytes(int32(btmp.Bounds().Size().X))
+	by = append(bound, by...)
 	fmt.Println("Haar length", len(by))
-	arithmetic.Arithmetic(op,output,by)
+	Arithmetic(op, output, by)
 
 	os.Exit(0)
 }

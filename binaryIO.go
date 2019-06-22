@@ -27,7 +27,7 @@ func readBinaryFile(arithmeticCoder *Coder, operation string, modelCreation bool
 	} else if operation == "d" {
 		arithmeticDecoder.readFreqTable(data)
 		outputBytes := arithmeticDecoder.output
-		writeBinaryFile(outputFile, outputBytes, 0)
+		writeBin(outputFile, outputBytes, 0)
 
 	}
 	bufferOverflow += bufferSize
@@ -43,7 +43,7 @@ func readBinaryFile(arithmeticCoder *Coder, operation string, modelCreation bool
 	}
 
 }
-func writeBinaryFile(fileName string, bytesToWrite []byte, bufferOverflow int64) {
+func writeBin(fileName string, bytesToWrite []byte, bufferOverflow int64) {
 	if bufferOverflow == 0 {
 		_, err := os.Create(fileName)
 		errCheck(err)
@@ -91,5 +91,5 @@ func writeEncoded(arithmeticCoder *Coder, fileName string) {
 
 	}
 	fmt.Println("Compressed output file size ", len(outputBytes))
-	writeBinaryFile(fileName, outputBytes, 0)
+	writeBin(fileName, outputBytes, 0)
 }
